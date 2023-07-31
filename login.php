@@ -1,5 +1,5 @@
 <?php 
-    include('head-login.php');
+    include("head-login.php");
 
     $sql_c = "SELECT * FROM captcha";
     $stmt = $db->prepare($sql_c);
