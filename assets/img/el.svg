@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="_圖層_1" data-name="圖層 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 103.08 42.4">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #fc3;
+        stroke: #fc3;
+        stroke-linejoin: round;
+        stroke-width: 2px;
+      }
+    </style>
+  </defs>
+  <polygon class="cls-1" points="23.4 16.69 9.17 16.71 14.92 1 1 21.91 14.92 21.9 7.48 41.4 23.4 16.69"/>
+  <polygon class="cls-1" points="62.74 16.69 48.51 16.71 54.26 1 40.34 21.91 54.26 21.9 46.82 41.4 62.74 16.69"/>
+  <polygon class="cls-1" points="102.08 16.69 87.85 16.71 93.6 1 79.68 21.91 93.6 21.9 86.16 41.4 102.08 16.69"/>
+</svg>

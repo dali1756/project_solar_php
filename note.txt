@@ -1,0 +1,3 @@
+資料表solar_energy.captcha
+id, password, number
+1, 6LeR90omAAAAALyDdZfBZuYGjQX_dzcfeGreCDxz, 0
