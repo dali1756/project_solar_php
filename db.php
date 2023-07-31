@@ -15,10 +15,10 @@
 
     $db = db_conn();
     function db_conn() {
-        $localhost = '127.0.0.1:3306';
-        $DBname    = 'solar_energy';
-        $user      = 'root';
-        $password  = 'a12345';
+        $localhost = '';
+        $DBname    = '';
+        $user      = '';
+        $password  = '';
 
         try {
             $db = new PDO("mysql:host={$localhost};dbname={$DBname}", $user, $password);
