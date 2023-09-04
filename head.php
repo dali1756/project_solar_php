@@ -19,12 +19,10 @@
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return $result ? $result["name"] : "";
     }
-    $area_id_1 = 1;
-    $area_name_1 = get_area_head($db, $area_id_1);
-    $area_id_2 = 2;
-    $area_name_2 = get_area_head($db,$area_id_2);
-    $area_id_3 = 3;
-    $area_name_3 = get_area_head($db, $area_id_3);
+    $area = [];
+    for ($i = 1; $i <= 3; $i++) {
+        $area[$i] = get_area_head($db, $i);
+    }
 ?>
 <!doctype html>
 <html lang="en">
@@ -67,19 +65,23 @@
                 <li>
                     <a href="index-view-all.php"><i class="fas fa-layer-group"></i>監控總覽</a>
                 </li>
-               
+               <?php
+                $area_url = [
+                    1 => "converter-a.php",
+                    2 => "converter-b.php",
+                    3 => "converter-c.php"
+                ];
+               ?>
                 <li>
                     <a href="#menu2" data-bs-toggle="collapse" aria-expanded="false" class="dropdown-toggle no-caret-down"><i class="fas fa-layer-group"></i>變流器</a>
                     <ul class="collapse list-unstyled" id="menu2">
-                        <li>
-                            <a href="converter-a.php"><i class="fas fa-angle-right"></i><?php echo $area_name_1; ?></a>
-                        </li>
-                        <li>
-                            <a href="converter-b.php"><i class="fas fa-angle-right"></i><?php echo $area_name_2; ?></a>
-                        </li>
-                        <li>
-                            <a href="converter-c.php"><i class="fas fa-angle-right"></i><?php echo $area_name_3; ?></a>
-                        </li>                           
+                        <?php
+                            for ($i = 1; $i <= count($area_url); $i++) {
+                                echo "<li>";
+                                echo '<a href = "'. $area_url[$i]. '"><i class = "fas fa-angle-right"></i>'. $area[$i]. '</a>';
+                                echo "</li>";
+                            }
+                        ?>                          
                     </ul>
                 </li>   
                 
