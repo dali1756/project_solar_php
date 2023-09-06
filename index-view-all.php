@@ -1,16 +1,12 @@
 <?php 
-    // error_reporting(E_ALL);
-    // ini_set('display_errors', '1');
     header("Refresh: 300");
     include('head.php');
-
     function area($db) {
         $sql_area = "SELECT id FROM area";  
         $stmt = $db->prepare($sql_area);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
     }
-    
     // 區域名稱, 碳排係數, 裝置容量
     function getData($db, $area_id) {
         $sql_data = "SELECT a.id, a.name, a.coe, a.capacity FROM area a WHERE id = :area_id";
@@ -33,11 +29,9 @@
         // $sql_power = "SELECT SUM(i.totally_active_power) AS totally_active_power, SUM(i.Energy_today) AS Energy_today, SUM(i.Energy_total) AS Energy_total,
         //               i.update_date, MIN(i.update_date) FROM invertor i JOIN sensor s ON i.id = s.sensor_type_id WHERE s.sensor_type = 'invertor' 
         //               AND s.area_id = :area_id GROUP BY s.area_id";
-
         $sql_power = "SELECT SUM(i.totally_active_power) AS totally_active_power, SUM(i.Energy_today) AS Energy_today, SUM(i.Energy_total) AS Energy_total,
-                      i.update_date, MIN(i.update_date) FROM invertor i JOIN sensor s ON i.id = s.sensor_type_id WHERE s.sensor_type = 'invertor' 
-                      AND s.area_id = :area_id GROUP BY s.area_id, i.update_date";
-
+                      MAX(i.update_date), MIN(i.update_date) FROM invertor i JOIN sensor s ON i.id = s.sensor_type_id WHERE s.sensor_type = 'invertor' 
+                      AND s.area_id = :area_id GROUP BY s.area_id";
         $stmt = $db->prepare($sql_power);
         $stmt->bindParam(':area_id', $area_id);
         $stmt->execute();
@@ -51,17 +45,20 @@
         // $sql_yesterday = "SELECT SUM(il.Energy_today) AS energy_today, il.add_date, il.invertor_id, s.area_id, s.sensor_type, s.sensor_type_id
         //                   FROM invertor_log il JOIN sensor s ON il.invertor_id = s.sensor_type_id
         //                   WHERE s.sensor_type = 'invertor' AND s.area_id = :area_id AND DATE(il.add_date) = :date_yesterday ORDER BY il.add_date DESC";
-
-        $sql_yesterday = "SELECT SUM(il.Energy_today) AS energy_today, il.add_date, il.invertor_id, s.area_id, s.sensor_type, s.sensor_type_id
-                          FROM invertor_log il JOIN sensor s ON il.invertor_id = s.sensor_type_id
-                          WHERE s.sensor_type = 'invertor' AND s.area_id = :area_id AND DATE(il.add_date) = :date_yesterday
-                          GROUP BY il.add_date, il.invertor_id, s.area_id, s.sensor_type, s.sensor_type_id ORDER BY il.add_date DESC";
-
+        $sql_yesterday = "SELECT SUM(il.Energy_today) AS energy_today, MAX(il.add_date) AS last_add_date, 
+                          MAX(il.invertor_id) AS invertor_id, MAX(s.area_id) AS area_id, MAX(s.sensor_type) AS sensor_type, 
+                          MAX(s.sensor_type_id) AS sensor_type_id 
+                          FROM invertor_log il JOIN sensor s ON il.invertor_id = s.sensor_type_id 
+                          WHERE s.sensor_type = 'invertor' AND s.area_id = :area_id AND DATE(il.add_date) = :date_yesterday 
+                          ORDER BY last_add_date DESC";
         $stmt = $db->prepare($sql_yesterday);
         $stmt->bindParam(":area_id", $area_id);
         $stmt->bindParam(":date_yesterday", $date_yesterday, PDO::PARAM_STR);
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $capacity = getData($db, $area_id)['capacity'];
+        $result["daily_average_power"] = $result["energy_today"] / $capacity; 
+        return $result;
         if ($result) {
             $capacity = getData($db, $area_id)['capacity'];
             $result["daily_average_power"] = $result["energy_today"] / $capacity; 
@@ -120,6 +117,7 @@
         $power_today = ($power_result["Energy_today"] != 0 && $volume["capacity"] != 0) ? $power_result["Energy_today"] / $volume["capacity"] : 0;   // 日平均
         // $power_today = $power_result["Energy_today"] / $volume["capacity"]; 
         $pr = $cumulative_solar != 0 ? ($power_today / $cumulative_solar) * 100 : 0;   // PR
+
         // var_dump($volume["capacity"]);   // O
         // var_dump($power_result["Energy_today"]);
         // var_dump($pr);
@@ -135,7 +133,7 @@
             $volume = getData($db, $area_id);
             $total_capacity += $volume["capacity"];
         }
-    
+
         foreach ($area_ids as $area_id) {
             $pr = get_pr($db, $area_id);
             $volume = getData($db, $area_id);
@@ -149,11 +147,11 @@
         // $sql_cumulative = "SELECT pl.id, pl.pyranometer_id, pl.solar_irradiance, pl.data_validity, pl.add_date, s.sensor_type, s.sensor_type_id FROM pyranometer_log pl
         //                    JOIN sensor s ON pl.pyranometer_id = s.sensor_type_id WHERE s.sensor_type = 'pyranometer' AND s.area_id = :area_id
         //                    AND DATE (pl.add_date) = :today AND pl.data_validity = 1 GROUP BY pl.add_date ORDER BY pl.add_date ASC";
-
-        $sql_cumulative = "SELECT pl.id, pl.pyranometer_id, pl.solar_irradiance, pl.data_validity, pl.add_date, s.sensor_type, s.sensor_type_id FROM pyranometer_log pl
-                           JOIN sensor s ON pl.pyranometer_id = s.sensor_type_id WHERE s.sensor_type = 'pyranometer' AND s.area_id = :area_id
-                           AND DATE(pl.add_date) = :today AND pl.data_validity = 1 GROUP BY pl.id, pl.add_date ORDER BY pl.add_date ASC";
-
+        $sql_cumulative = "SELECT pl.id, pl.pyranometer_id, pl.solar_irradiance, pl.data_validity, pl.add_date, s.sensor_type, s.sensor_type_id 
+                           FROM pyranometer_log pl JOIN sensor s ON pl.pyranometer_id = s.sensor_type_id 
+                           WHERE s.sensor_type = 'pyranometer' AND s.area_id = :area_id AND DATE (pl.add_date) = :today AND pl.data_validity = 1 
+                           GROUP BY pl.id, pl.pyranometer_id, pl.solar_irradiance, pl.data_validity, pl.add_date, s.sensor_type, s.sensor_type_id 
+                           ORDER BY pl.add_date ASC";
         $stmt = $db->prepare($sql_cumulative);
         $stmt->bindParam(":area_id", $area_id);
         $stmt->bindParam(":today", $today);
@@ -169,8 +167,8 @@
                 $time_diff = strtotime($row["add_date"]) - strtotime($before_time);
                 $solar_change = (($solar_irradiance - 4) * 125) + (($before_solar - 4) * 125);
                 $cumulative_solar += ($solar_change * $time_diff) / 2 / 3600 / 1000;   // 累積日照 
-                var_dump($solar_change);        
-                var_dump($time_diff);             
+                // var_dump($solar_change);        
+                // var_dump($time_diff);             
             }
             $before_solar = $solar_irradiance;
             $before_time = $row["add_date"];
@@ -231,14 +229,11 @@
                                 $data = getData($db, $area_id);
                                 $yesterday = yesterday($db, $area_id, $date_yesterday);
 
-                                if (isset($power["totally_active_power"])) {
-                                    $totally_active_power = $totally_active_power + $power["totally_active_power"];
-                                } else if (isset($power["Energy_today"])) {
-                                    $energy_today = $energy_today + $power["Energy_today"];
-                                    $coe = $coe + $power["Energy_today"] * $data["coe"];
-                                } else if (isset($yesterday["energy_today"])) {
-                                    $yesterday_power = $yesterday_power + $yesterday["energy_today"];
-                                } else if ($data["capacity"] != 0 && isset($yseterday["energy_today"])) {
+                                $totally_active_power = $totally_active_power + $power["totally_active_power"];
+                                $energy_today = $energy_today + $power["Energy_today"];
+                                $coe = $coe + $power["Energy_today"] * $data["coe"];
+                                $yesterday_power = $yesterday_power + $yesterday["energy_today"];
+                                if ($data["capacity"] != 0) {
                                     $yesterday_power_hour = $yesterday_power_hour + $yesterday["energy_today"] / $data["capacity"];
                                 }
                             }
@@ -278,11 +273,7 @@
                         $thermometer = get_thermometer($db, 1);
                         $yesterday_power = yesterday($db, 1, $date_yesterday);
                         $pr = get_pr($db, 1);
-                        
-                        if (isset($yesterday_power["energy_today"]) != 0 && $area_maintain["capacity"] != 0) {
-                            $yest_powerh = $yesterday_power["energy_today"] / $area_maintain["capacity"];   // 昨日發電小時
-                        }
-
+                        $yest_powerh = $yesterday_power["energy_today"] / $area_maintain["capacity"];   // 昨日發電小時
                         $solar_balance = $power_maintain["Energy_today"] / $area_maintain["capacity"];   // 日平均發電量
                         // var_dump($pr);
                         // var_dump($date_yesterday);
@@ -340,9 +331,7 @@
                     $thermometer = get_thermometer($db, 2);
                     $yesterday_power = yesterday($db, 2, $date_yesterday);
                     $pr = get_pr($db, 2);
-                    if (isset($yesterday_power["energy_today"]) != 0 && $area_store["capacity"] != 0) {
-                        $yest_powerh = $yesterday_power["energy_today"] / $area_store["capacity"];
-                    }
+                    $yest_powerh = $yesterday_power["energy_today"] / $area_store["capacity"];
                 ?>
                 <div class="row">
                             <div class="monitor1"><i class=" fas fa-clock"></i><br> 裝置容量<div class="monitor-footer"><?php echo isset($area_store["capacity"]) ? number_format($area_store["capacity"], 2) : ""; ?> kWp</div></div>
@@ -396,9 +385,7 @@
                         $thermometer = get_thermometer($db, 3);
                         $yesterday_power = yesterday($db, 3, $date_yesterday);
                         $pr = get_pr($db, 3);
-                        if (isset($yesterday_power["energy_today"]) != 0 && $area_rolled["capacity"] != 0) {
-                            $yest_powerh = $yesterday_power["energy_today"] / $area_rolled["capacity"];
-                        }
+                        $yest_powerh = $yesterday_power["energy_today"] / $area_rolled["capacity"];
                        ?>
                         <div class="row">
                         <div class="monitor1"><i class=" fas fa-clock"></i><br> 裝置容量<div class="monitor-footer"><?php echo isset($area_rolled["capacity"]) ? number_format($area_rolled["capacity"], 2) : ""; ?> kWp</div></div>
