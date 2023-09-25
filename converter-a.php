@@ -1,5 +1,5 @@
 <?php
-    header("Refresh: 300");
+    header("Refresh: 300");   // 設定每五分鐘更新畫面一次
     include("head.php");
 
     function get_inverter($db, $area_id = null) {
