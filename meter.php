@@ -1,46 +1,93 @@
 <?php 
-    ini_set('display_errors', 1);
-    error_reporting(E_ALL);
+    // ini_set('display_errors', 1);
+    // error_reporting(E_ALL);
 
     header("Refresh: 300");
     include("head.php");
 
-    function get_dc($db, $area_id) {
-        $sql_dc = "SELECT s.sensor_type_id, COUNT(*), SUM(dc.Voltage) AS voltage, SUM(dc.Current) AS current, SUM(dc.Energy) AS energy, SUM(dc.Power) AS power
-                   FROM dc_electricity_meter dc JOIN sensor s ON dc.id = s.sensor_type_id JOIN area ON s.area_id = :area_id
-                   WHERE s.sensor_type = 'dc_electricity_meter' GROUP BY s.sensor_type_id, area.id";
-        $stmt = $db->prepare($sql_dc);
-        $stmt->bindParam(":area_id", $area_id);
-        $stmt->execute();
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result;
-    }
-    function get_ac($db, $area_id) {
-        $sql_ac = "SELECT s.sensor_type_id, COUNT(*), SUM(ac.ULN_AVG) AS ULN_AVG, SUM(ac.ULL_AVG) AS ULL_AVG, SUM(ac.I_AVG) AS I_AVG, SUM(ac.PSUM) as PSUM
-                   FROM ac_electricity_meter ac JOIN sensor s ON ac.id = s.sensor_type_id JOIN area ON s.area_id = :area_id
-                   WHERE s.sensor_type = 'ac_electricity_meter' GROUP BY s.sensor_type_id, area.id";
-        $stmt = $db->prepare($sql_ac);
-        $stmt->bindParam(":area_id", $area_id);
-        $stmt->execute();
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result;
-    }
-    $dc_1 = get_dc($db, 1);
-    $ac_1 = get_ac($db, 1);
-    $dc_2 = get_dc($db, 3);
-    $ac_2 = get_ac($db, 3);
+    // function get_dc($db, $area_id) {
+    //     $sql_dc = "SELECT s.sensor_type_id, COUNT(*), SUM(dc.Voltage) AS voltage, SUM(dc.Current) AS current, SUM(dc.Energy) AS energy, SUM(dc.Power) AS power
+    //                FROM dc_electricity_meter dc JOIN sensor s ON dc.id = s.sensor_type_id JOIN area ON s.area_id = :area_id
+    //                WHERE s.sensor_type = 'dc_electricity_meter' GROUP BY s.sensor_type_id, area.id";
+    //     $stmt = $db->prepare($sql_dc);
+    //     $stmt->bindParam(":area_id", $area_id);
+    //     $stmt->execute();
+    //     $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    //     return $result;
+    // }
+    // function get_ac($db, $area_id) {
+    //     $sql_ac = "SELECT s.sensor_type_id, COUNT(*), SUM(ac.ULN_AVG) AS ULN_AVG, SUM(ac.ULL_AVG) AS ULL_AVG, SUM(ac.I_AVG) AS I_AVG, SUM(ac.PSUM) as PSUM
+    //                FROM ac_electricity_meter ac JOIN sensor s ON ac.id = s.sensor_type_id JOIN area ON s.area_id = :area_id
+    //                WHERE s.sensor_type = 'ac_electricity_meter' GROUP BY s.sensor_type_id, area.id";
+    //     $stmt = $db->prepare($sql_ac);
+    //     $stmt->bindParam(":area_id", $area_id);
+    //     $stmt->execute();
+    //     $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    //     return $result;
+    // }
+    // $dc_1 = get_dc($db, 1);
+    // $ac_1 = get_ac($db, 1);
+    // $dc_2 = get_dc($db, 3);
+    // $ac_2 = get_ac($db, 3);
 
-    // 區域名稱
-    function get_area($db, $id) {
-        $sql = "SELECT name FROM solar_energy.area WHERE id = :id";
-        $stmt = $db->prepare($sql);
-        $stmt->bindParam(":id", $id, PDO::PARAM_INT);
-        $stmt->execute();
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result ? $result["name"] : "";
+    // // 區域名稱
+    // function get_area($db, $id) {
+    //     $sql = "SELECT name FROM solar_energy.area WHERE id = :id";
+    //     $stmt = $db->prepare($sql);
+    //     $stmt->bindParam(":id", $id, PDO::PARAM_INT);
+    //     $stmt->execute();
+    //     $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    //     return $result ? $result["name"] : "";
+    // }
+    // $twoArea = get_area($db, 1). " & ". get_area($db, 2);
+    // $Area = get_area($db, 3);
+
+
+    class ElectricityMeter {
+        private $db;
+        public function __construct($db) {
+            $this->db = $db;
+        }
+        public function getDC($area_id) {
+            $sql_dc = "SELECT s.sensor_type_id, COUNT(*), SUM(dc.Voltage) AS voltage, SUM(dc.Current) AS current, SUM(dc.Energy) AS energy, SUM(dc.Power) AS power
+                       FROM dc_electricity_meter dc JOIN sensor s ON dc.id = s.sensor_type_id JOIN area ON s.area_id = :area_id
+                       WHERE s.sensor_type = 'dc_electricity_meter' GROUP BY s.sensor_type_id, area.id";
+            $stmt = $this->db->prepare($sql_dc);
+            $stmt->bindParam(":area_id", $area_id);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        public function getAC($area_id) {
+            $sql_ac = "SELECT s.sensor_type_id, COUNT(*), SUM(ac.ULN_AVG) AS ULN_AVG, SUM(ac.ULL_AVG) AS ULL_AVG, SUM(ac.I_AVG) AS I_AVG, SUM(ac.PSUM) as PSUM
+                       FROM ac_electricity_meter ac JOIN sensor s ON ac.id = s.sensor_type_id JOIN area ON s.area_id = :area_id
+                       WHERE s.sensor_type = 'ac_electricity_meter' GROUP BY s.sensor_type_id, area.id";
+            $stmt = $this->db->prepare($sql_ac);
+            $stmt->bindParam(":area_id", $area_id);
+            $stmt->execute();
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        public function getArea($id) {
+            $sql = "SELECT name FROM solar_energy.area WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bindParam(":id", $id, PDO::PARAM_INT);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ? $result["name"] : "";
+        }
     }
-    $twoArea = get_area($db, 1). " & ". get_area($db, 2);
-    $Area = get_area($db, 3);
+    $meter = new ElectricityMeter($db);
+    $dc_1 = $meter->getDC(1);
+    $ac_1 = $meter->getAC(1);
+    $dc_2 = $meter->getDC(3);
+    $ac_2 = $meter->getAC(3);
+
+    $area_id_1 = 1;
+    $area_id_2 = 2;
+    $area_id_3 = 3;
+    $area_name_1 = $meter->getArea($area_id_1);
+    $area_name_2 = $meter->getArea($area_id_2);
+    $area_name_3 = $meter->getArea($area_id_3);
+    $area_names = $area_name_1. " & ". $area_name_2;
 ?>
 
 <div class="content">
